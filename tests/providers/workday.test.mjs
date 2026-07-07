@@ -188,6 +188,33 @@ try {
     fail(`workday.fetch() redirect opts across pages = ${JSON.stringify(capturedRedirects)}`);
   }
 
+  // fetch() forwards optional searchText / appliedFacets from the `workday:`
+  // config block into the POST body for server-side narrowing (default: none).
+  let facetBody = null;
+  await workday.fetch(
+    { name: 'Acme', careers_url: 'https://acme.wd12.myworkdayjobs.com/en-US/acme-jobs', workday: { searchText: 'ml', appliedFacets: { locationHierarchy1: ['de-guid', 'ch-guid'] } } },
+    mkWorkdayCtx(async (_url, opts) => { facetBody = JSON.parse(opts.body); return { total: 0, jobPostings: [] }; }),
+  );
+  if (facetBody && facetBody.searchText === 'ml'
+      && Array.isArray(facetBody.appliedFacets?.locationHierarchy1)
+      && facetBody.appliedFacets.locationHierarchy1.join(',') === 'de-guid,ch-guid') {
+    pass('workday.fetch() forwards config searchText + appliedFacets into the POST body');
+  } else {
+    fail(`workday.fetch() facet body = ${JSON.stringify(facetBody)}`);
+  }
+
+  // Default (no `workday:` block) → empty searchText + empty appliedFacets.
+  let defaultBody = null;
+  await workday.fetch(
+    { name: 'Acme', careers_url: 'https://acme.wd12.myworkdayjobs.com/en-US/acme-jobs' },
+    mkWorkdayCtx(async (_url, opts) => { defaultBody = JSON.parse(opts.body); return { total: 0, jobPostings: [] }; }),
+  );
+  if (defaultBody && defaultBody.searchText === '' && JSON.stringify(defaultBody.appliedFacets) === '{}') {
+    pass('workday.fetch() defaults to empty searchText + appliedFacets when no config block is present');
+  } else {
+    fail(`workday.fetch() default body = ${JSON.stringify(defaultBody)}`);
+  }
+
   // parseWorkdayResponse — null/undefined entries in jobPostings must be
   // skipped, not crash
   const sparseWorkday = { jobPostings: [null, undefined, { title: 'Real Job', externalPath: '/job/board/real-job' }] };
