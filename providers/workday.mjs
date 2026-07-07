@@ -189,7 +189,17 @@ export default {
     if (!ep) throw new Error(`workday: cannot derive CXS endpoint for ${entry.name}`);
 
     const postOpts = { method: 'POST', redirect: 'error', headers: { 'content-type': 'application/json', accept: 'application/json' } };
-    const makeBody = (offset) => JSON.stringify({ limit: PAGE_SIZE, offset, searchText: '', appliedFacets: {} });
+    // Optional upfront server-side narrowing (portals.yml → `workday:` block):
+    //   workday.searchText    — free-text query passed to Workday's search box
+    //   workday.appliedFacets — e.g. { locationHierarchy1: ["<countryFacetId>"] }
+    //     to scope a large tenant to a country before pagination. Facet IDs are
+    //     tenant-specific GUIDs (read them once from a page's `facets` array).
+    // Both default to the previous behaviour (fetch everything, filter later).
+    const cfg = (entry && typeof entry.workday === 'object' && entry.workday) || {};
+    const searchText = typeof cfg.searchText === 'string' ? cfg.searchText : '';
+    const appliedFacets = (cfg.appliedFacets && typeof cfg.appliedFacets === 'object' && !Array.isArray(cfg.appliedFacets))
+      ? cfg.appliedFacets : {};
+    const makeBody = (offset) => JSON.stringify({ limit: PAGE_SIZE, offset, searchText, appliedFacets });
     const sinceMs = typeof ctx?.sinceMs === 'number' ? ctx.sinceMs : null;
 
     const first = await fetchPageWithRetry(ctx, ep.api, { ...postOpts, body: makeBody(0) });
