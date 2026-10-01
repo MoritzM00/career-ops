@@ -1427,6 +1427,14 @@ search_queries:
 #     size: 100           # optional results per keyword (1-100)
 #   enabled: true
 #
+# - name: jobs.ch — ML/AI Zürich         # Swiss job board (jobs.ch)
+#   provider: jobsch
+#   jobsch:
+#     keywords: ["Machine Learning", "AI Engineer"]  # one search per keyword
+#     location: "Zürich"  # optional location filter
+#     max_pages: 5        # optional page cap per keyword
+#   enabled: true
+#
 # - name: VDAB — AI/ML Vlaanderen        # Flanders (BE) public employment service
 #   provider: vdab
 #   vdab:
